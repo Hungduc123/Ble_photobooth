@@ -1,0 +1,20 @@
+{
+  "name": "Photobooth",
+  "displayName": "Photobooth",
+  "expo": {
+    "name": "Photobooth",
+    "slug": "Photobooth",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.tic.photobooth",
+      "buildNumber": "1.0.0"
+    },
+    "android": {
+      "package": "com.tic.photobooth",
+      "versionCode": 1
+    }
+  }
+}
