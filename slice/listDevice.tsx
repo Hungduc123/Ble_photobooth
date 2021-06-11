@@ -1,24 +1,19 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { Device } from "react-native-ble-plx";
+
+import { TypePeripheral } from "../data/peripheral";
 
 // var data:dataItem
-const data: Device[] = [];
+const data: TypePeripheral[] = [];
 const slice = createSlice({
   name: "addList",
   initialState: data,
 
   reducers: {
     addList: (state, action) => {
-      if (!state.find((dev) => dev.id === action.payload.id)) {
-        return [...state, action.payload];
-      }
-      return state;
-    },
-    CLEAR: (state) => {
-      return [];
+      state = action.payload;
     },
   },
 });
 const { reducer, actions } = slice;
-export const { addList, CLEAR } = actions;
+export const { addList } = actions;
 export default reducer;

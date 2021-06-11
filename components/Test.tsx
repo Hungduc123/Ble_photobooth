@@ -57,8 +57,29 @@ export default function App() {
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
 
   const [services, setServices] = useState<Service[]>([]);
+  const [characteristics, setCharacteristics] = useState<Array<Characteristic>>(
+    []
+  );
+  const [characteristicsW, setCharacteristicsW] = useState<string>("");
+  const [characteristicsN, setCharacteristicsN] = useState<string>("");
+
+  const [serviceUUID, setServiceUUID] = useState<string>("");
 
   const startScan = () => {
+    const obj1 = { a: 1, b: 2, c: 0, d: 9 };
+    const obj2 = { a: 4, b: 4, c: 5 };
+
+    const mergeObjects4 = (obj1: any, obj2: any) => {
+      for (const key in obj1) {
+        if (obj2[key]) {
+          obj1[key] = obj2[key];
+        } else delete obj1[key];
+      }
+      console.log(obj1);
+      return;
+    };
+    mergeObjects4(obj1, obj2);
+
     console.log("Start scan");
     setIsLoading(true);
     dispatch({ type: "CLEAR" });
@@ -67,10 +88,10 @@ export default function App() {
       if (error) {
         console.warn(error);
       }
-      if (device) {
+      if (device && device.name === "TEST_BLE") {
         dispatch({ type: "ADD_DEVICE", payload: device });
-        // const action = addList(device);
-        // dispatch_(action);
+        // console.log(device);
+        // connectDevice(device);
       }
     });
 
@@ -83,21 +104,56 @@ export default function App() {
 
   const connectDevice = async (device: Device) => {
     setIsConnecting(true);
+    console.log(
+      "before------------------------------------------------------------"
+    );
+    const is = await device.isConnected();
+    console.log("isConnected +++++++++++++++" + is);
 
-    const connectedDevice = await manager.connectToDevice(device.id);
+    console.log(device);
+    device
+      .connect()
+      .then(async (device: Device) => {
+        setIsConnected(true);
+        console.log("Device connected");
+        alert("Device connected!");
+        console.log(
+          "after------------------------------------------------------------"
+        );
 
-    setIsConnected(true);
-    console.log("Device connected");
-    alert("Device connected!");
-    const allServicesAndCharacteristics =
-      await connectedDevice.discoverAllServicesAndCharacteristics();
+        const is = await device.isConnected();
+        console.log(device);
+        console.log("isConnected+++++++++++++++" + is);
 
-    const discoveredServices = await allServicesAndCharacteristics.services();
-    setServices(discoveredServices);
-    discoveredServices.forEach((value) => {
-      console.log("   ", value.uuid);
-    });
+        return device.discoverAllServicesAndCharacteristics();
+      })
+      .then((device) => {
+        getChr(device);
+      })
+      .catch((error) => {
+        // Handle errors
+      });
+
     setIsConnecting(false);
+  };
+  const getChr = async (device: Device) => {
+    const serviceUUID = device.serviceUUIDs![0];
+    const char: Characteristic[] = await device.characteristicsForService(
+      serviceUUID
+    );
+    // char.forEach((characteristic) => {
+    //   console.log(characteristic + "\n");
+    // });
+    for (let key in char) {
+      console.log(
+        "---------------------------------------------------------------------"
+      );
+
+      console.log(key + ":", char[key]);
+    }
+    setServiceUUID(serviceUUID);
+    setCharacteristicsW(char[1].uuid);
+    setCharacteristicsN(char[0].uuid);
   };
 
   const disconnectDevice = async (device: Device) => {
@@ -110,39 +166,50 @@ export default function App() {
     console.log("Device disconnected");
   };
 
-  // useEffect(() => {
-  //   return () => {
-  //     manager.destroy();
-  //   };
-  // }, []);
-  const connect = (device: Device) => {
-    device.connect().then((device) => {
-      return device.discoverAllServicesAndCharacteristics();
-    });
-    // .then((device) => {
-    //   return setupNotifications(device);
-    // });
-  };
-  const turnon = async (device: Device) => {
-    // const service =
-    // const characteristicW = this.writeUUID(id)
-    // const characteristicN = this.notifyUUID(id)
-
+  const turnOn = async (device: Device) => {
     const characteristic: Characteristic =
       await device.writeCharacteristicWithoutResponseForService(
-        device.serviceUUIDs![0],
-        "00001527-1212-efde-1523-785feabcd123",
-        "QVQrTEVET04=" /* 0x01 in hex */
+        serviceUUID,
+        characteristicsW,
+        "QVQrTEVET04="
       );
   };
-  const turnoff = async (device: Device) => {
+  const turnOff = async (device: Device) => {
     const characteristic =
       await device.writeCharacteristicWithoutResponseForService(
-        device.serviceUUIDs![0],
-        "00001527-1212-efde-1523-785feabcd123",
-        "QVQrTEVET0ZG" /* 0x01 in hex */
+        serviceUUID,
+        characteristicsW,
+        "QVQrTEVET0ZG"
       );
   };
+  const setupNotifications = (device: Device) => {
+    // const characteristic =
+    //   await device.writeCharacteristicWithResponseForService(
+    //     serviceUUID,
+    //     characteristicsW,
+    //     "QVQrTEVET0ZG"
+    //   );
+
+    device.monitorCharacteristicForService(
+      serviceUUID,
+      characteristicsN,
+      (error, characteristic) => {
+        if (error) {
+          // this.error(error.message)
+          return;
+        }
+
+        // this.updateValue(characteristic.uuid, characteristic.value)
+        console.log("characteristic!.uuid");
+
+        console.log(characteristic!.uuid);
+        console.log("characteristic!.value");
+
+        console.log(characteristic!.value);
+      }
+    );
+  };
+
   return (
     <View style={styles.container}>
       <Header>
@@ -181,7 +248,10 @@ export default function App() {
               </CardItem>
               {!isConnected ? (
                 <CardItem style={styles.cardButton}>
-                  <Button disabled={isConnecting} onPress={() => connect(item)}>
+                  <Button
+                    disabled={isConnecting}
+                    onPress={() => connectDevice(item)}
+                  >
                     <Text>Connect</Text>
                   </Button>
                 </CardItem>
@@ -194,17 +264,24 @@ export default function App() {
               )}
               <TouchableOpacity
                 onPress={() => {
-                  turnoff(item);
+                  turnOff(item);
                 }}
               >
                 <Text>turn off</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => {
-                  turnon(item);
+                  turnOn(item);
                 }}
               >
                 <Text>turn on</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setupNotifications(item);
+                }}
+              >
+                <Text>Notifications</Text>
               </TouchableOpacity>
             </Card>
           );
