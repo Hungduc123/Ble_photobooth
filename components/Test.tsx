@@ -25,6 +25,7 @@ import {
 } from "native-base";
 import { addList } from "../slice/listDevice";
 import { useDispatch } from "react-redux";
+import { useHistory } from "react-router-native";
 
 const manager = new BleManager();
 
@@ -64,22 +65,9 @@ export default function App() {
   const [characteristicsN, setCharacteristicsN] = useState<string>("");
 
   const [serviceUUID, setServiceUUID] = useState<string>("");
+  const history = useHistory();
 
   const startScan = () => {
-    const obj1 = { a: 1, b: 2, c: 0, d: 9 };
-    const obj2 = { a: 4, b: 4, c: 5 };
-
-    const mergeObjects4 = (obj1: any, obj2: any) => {
-      for (const key in obj1) {
-        if (obj2[key]) {
-          obj1[key] = obj2[key];
-        } else delete obj1[key];
-      }
-      console.log(obj1);
-      return;
-    };
-    mergeObjects4(obj1, obj2);
-
     console.log("Start scan");
     setIsLoading(true);
     dispatch({ type: "CLEAR" });
@@ -127,7 +115,7 @@ export default function App() {
 
         return device.discoverAllServicesAndCharacteristics();
       })
-      .then((device) => {
+      .then(() => {
         getChr(device);
       })
       .catch((error) => {
@@ -167,22 +155,34 @@ export default function App() {
   };
 
   const turnOn = async (device: Device) => {
-    const characteristic: Characteristic =
-      await device.writeCharacteristicWithoutResponseForService(
-        serviceUUID,
-        characteristicsW,
-        "QVQrTEVET04="
-      );
+    // const characteristic: Characteristic =
+    //   await device.writeCharacteristicWithResponseForService(
+    //     serviceUUID,
+    //     characteristicsW,
+    //     "QVQrTEVET04="
+    //   );
+    manager.writeCharacteristicWithoutResponseForDevice(
+      "C2:90:49:C5:97:0F",
+      "00001523-1212-efde-1523-785feabcd123",
+      "00001527-1212-efde-1523-785feabcd123",
+      "QVQrTEVET04="
+    );
   };
   const turnOff = async (device: Device) => {
-    const characteristic =
-      await device.writeCharacteristicWithoutResponseForService(
-        serviceUUID,
-        characteristicsW,
-        "QVQrTEVET0ZG"
-      );
+    // const characteristic =
+    //   await device.writeCharacteristicWithoutResponseForService(
+    //     serviceUUID,
+    //     characteristicsW,
+    //     "QVQrTEVET0ZG"
+    //   );
+    manager.writeCharacteristicWithoutResponseForDevice(
+      "C2:90:49:C5:97:0F",
+      "00001523-1212-efde-1523-785feabcd123",
+      "00001527-1212-efde-1523-785feabcd123",
+      "QVQrTEVET0ZG"
+    );
   };
-  const setupNotifications = (device: Device) => {
+  const setupNotifications = async (device: Device) => {
     // const characteristic =
     //   await device.writeCharacteristicWithResponseForService(
     //     serviceUUID,
@@ -200,9 +200,7 @@ export default function App() {
         }
 
         // this.updateValue(characteristic.uuid, characteristic.value)
-        console.log("characteristic!.uuid");
 
-        console.log(characteristic!.uuid);
         console.log("characteristic!.value");
 
         console.log(characteristic!.value);
@@ -271,17 +269,12 @@ export default function App() {
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => {
-                  turnOn(item);
+                  // turnOn(item);
+                  // setupNotifications(item);
+                  history.push("/Camera2");
                 }}
               >
                 <Text>turn on</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  setupNotifications(item);
-                }}
-              >
-                <Text>Notifications</Text>
               </TouchableOpacity>
             </Card>
           );
