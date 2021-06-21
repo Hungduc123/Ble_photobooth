@@ -8,6 +8,9 @@ import {
   Dimensions,
   NativeModules,
   NativeEventEmitter,
+  TouchableOpacity,
+  Alert,
+  ToastAndroid,
 } from "react-native";
 import { Camera } from "expo-camera";
 import { RNFFmpeg, RNFFmpegConfig } from "react-native-ffmpeg";
@@ -28,14 +31,12 @@ import {
 import * as FileSystem from "expo-file-system";
 import * as MediaLibrary from "expo-media-library";
 import * as ImagePicker from "expo-image-picker";
-import * as SplashScreen from "expo-splash-screen";
 import { useHistory } from "react-router-native";
 // import { useDispatch, useSelector } from "react-redux";
 // import { imageCurrentChoose } from "../slice/imageCurrentChoose";
 import BleManager from "react-native-ble-manager";
 import { useDispatch, useSelector } from "react-redux";
-import { changeNumber } from "../slice/numberPicture";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Entypo } from "@expo/vector-icons";
 const BleManagerModule = NativeModules.BleManager;
 const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
 
@@ -60,6 +61,16 @@ function Camera__() {
   const [uriSelected, setUriSelected] = useState<string>();
   const [videoSelected, setVideoSelected] = useState<boolean>(false);
   const [imageSelected, setImageSelected] = useState<boolean>(false);
+  const [t, setTimePicture] = useState<number>(8);
+  console.log("====================================");
+  console.log(t);
+  console.log("====================================");
+  const timePicture = t;
+  console.log("====================================");
+  console.log(timePicture);
+  console.log("====================================");
+
+  const [countPicture, setCountPicture] = useState<number>(0);
 
   const [modeAuto, setModeAuto] = useState<boolean>(false);
   const deviceConnected = useSelector((state: any) => state.DeviceConnected);
@@ -76,20 +87,79 @@ function Camera__() {
   let albumName = "";
   let albumUri = "";
   let albumId = "";
-  const [timePicture, setTimePicture] = useState<number>(16);
 
   const handleUpdateValueForCharacteristic = async (data: any) => {
-    console.log(
-      "Received data from " +
-        data.peripheral +
-        " characteristic " +
-        data.characteristic,
-      data.value
-    );
+    console.log("=========== =========================");
+    console.log("data" + data.value);
     console.log("====================================");
-    console.log("data.value" + data.value);
 
-    console.log("====================================");
+    // if (
+    //   data.value.toString() ===
+    //   [65, 84, 43, 67, 65, 80, 79, 78, 32, 79, 75, 0, 0, 0, 0, 0].toString()
+    // ) {
+    //   console.log(" Device has received signal ");
+    //   ToastAndroid.show(
+    //     "Device has received signal! \n OK: " + data.value.toString(),
+    //     ToastAndroid.SHORT
+    //   );
+    // }
+    // if (data.value.toString() === [65, 84, 43, 82, 69, 84, 82, 89].toString()) {
+    //   console.log("Mobile send wrong signal");
+    // }
+
+    if (data.value.toString()) {
+      ToastAndroid.show(
+        "App has received signal FINISH ! \n OK: " + data.value.toString(),
+        ToastAndroid.SHORT
+      );
+      if (n >= timePicture + 1) {
+        n = 1;
+        console.log("take picture n=" + n);
+        await frame();
+        if (n <= timePicture + 1) {
+          console.log("Send signal n:" + n);
+
+          let data;
+          if (timePicture >= 10) {
+            data = stringToBytes(`AT+LEDON`);
+          } else {
+            data = stringToBytes(`AT+LEDON`);
+          }
+
+          BleManager.write(
+            deviceConnected,
+            service,
+            characteristicW,
+            data
+          ).then(() => {
+            console.log("controlled led");
+          });
+        }
+      } else if (n < timePicture + 1) {
+        console.log("take picture n=" + n);
+        await frame();
+        if (n < timePicture + 1) {
+          //
+          console.log("Send signal n:" + n);
+
+          let data;
+          if (timePicture >= 10) {
+            data = stringToBytes(`AT+LEDON`);
+          } else {
+            data = stringToBytes(`AT+LEDON`);
+          }
+
+          BleManager.write(
+            deviceConnected,
+            service,
+            characteristicW,
+            data
+          ).then(() => {
+            console.log("controlled led");
+          });
+        }
+      }
+    }
   };
 
   const stringToBytes = (str: string): Array<number> => {
@@ -100,11 +170,14 @@ function Camera__() {
     }
     return data;
   };
+
   async function frame() {
     if (n == 1) {
       const newAlbumName = "ALBUM__" + new Date().getTime().toFixed();
       const newAlbumUri = FileSystem.cacheDirectory + newAlbumName;
+      // setAlbumName(newAlbumName);
       albumName = newAlbumName;
+      // setAlbumUri(newAlbumUri);
       albumUri = newAlbumUri;
       if (camRef) {
         const asset = await camRef.current.takePictureAsync({
@@ -124,16 +197,38 @@ function Camera__() {
         );
         // setAlbumId(album.id);
         albumId = album.id;
+        setCountPicture(n);
       }
-      console.log("Begin");
+      console.log("Begin: " + n);
       n++;
     } else {
-      if (n == timePicture + 1) {
+      if (n == timePicture) {
+        if (camRef) {
+          const asset = await camRef.current.takePictureAsync({
+            skipProcessing: true,
+          });
+
+          let assetName: string;
+          if (n < 10) assetName = "/image_00" + n + ".jpg";
+          else assetName = "/image_0" + n + ".jpg";
+          await FileSystem.copyAsync({
+            from: asset.uri,
+            to: albumUri + assetName,
+          });
+          const newAsset = await MediaLibrary.createAssetAsync(
+            albumUri + assetName
+          );
+          //await RNFS.copyFile(asset.uri, albumUri + assetName)
+          //newAlbum.push('file://' + albumUri + assetName)
+          await MediaLibrary.addAssetsToAlbumAsync(newAsset, albumId, false);
+          setCountPicture(n);
+        }
+        console.log("Do: " + n);
         setCancel(false);
 
         console.log("End take auto pics");
         const command =
-          "-framerate 4 -i " +
+          "-framerate 8 -i " +
           albumUri +
           "/image_%03d.jpg -s 640x800 -b:v 2M -pix_fmt yuv420p " +
           albumUri +
@@ -146,9 +241,12 @@ function Camera__() {
         await FileSystem.deleteAsync(albumUri);
         console.log("Finish encode video");
         setTakingPicture(false);
-        alert("Finish encode video");
+
+        Alert.alert("Finish", "Finish encode video", [
+          { text: "OK", onPress: () => {} },
+        ]);
         n++;
-        console.log("End");
+        console.log("End n:" + n);
       } else {
         if (camRef) {
           const asset = await camRef.current.takePictureAsync({
@@ -168,6 +266,7 @@ function Camera__() {
           //await RNFS.copyFile(asset.uri, albumUri + assetName)
           //newAlbum.push('file://' + albumUri + assetName)
           await MediaLibrary.addAssetsToAlbumAsync(newAsset, albumId, false);
+          setCountPicture(n);
         }
         console.log("Do: " + n);
         n++;
@@ -175,6 +274,9 @@ function Camera__() {
     }
   }
   useEffect(() => {
+    console.log("====================================");
+    console.log("useEffect");
+    console.log("====================================");
     BleManager.retrieveServices(deviceConnected)
       .then((peripheralData: any) => {
         console.log("Retrieved peripheral services", peripheralData);
@@ -208,21 +310,7 @@ function Camera__() {
       });
     bleManagerEmitter.addListener(
       "BleManagerDidUpdateValueForCharacteristic",
-      async (data: any) => {
-        console.log("====================================");
-        console.log("data" + data.value);
-        console.log("====================================");
-
-        if (data.value.toString() === [67, 65, 80, 84, 85, 82, 69].toString()) {
-          if (n > timePicture + 1) {
-            n = 1;
-
-            await frame();
-          } else if (n <= timePicture + 1) {
-            await frame();
-          }
-        }
-      }
+      handleUpdateValueForCharacteristic
     );
     const getCameraPermission = async () => {
       const { status } = await Camera.requestPermissionsAsync();
@@ -245,7 +333,7 @@ function Camera__() {
         handleUpdateValueForCharacteristic
       );
     };
-  }, []);
+  }, [timePicture]);
 
   if (cameraPermission === null || libraryPermission === null) {
     return <View />;
@@ -261,116 +349,19 @@ function Camera__() {
     setCapturedPhoto(uri);
   };
 
-  // const takePictureAuto = async () => {
-  //   var data = stringToBytes("AT+LEDON");
-
-  //   setTakingPicture(true);
-  //   console.log("Begin take auto pics");
-  //   let timeTaking = 0;
-  //   setCancel(true);
-  //   const albumName = "ALBUM__" + new Date().getTime().toFixed();
-  //   const albumUri = FileSystem.cacheDirectory + albumName;
-  //   let newAlbum: Array<MediaLibrary.Asset> = [];
-  //   let albumId: string;
-
-  //   while (timeTaking <= 5) {
-  //     console.log("Wait for signal");
-  //     await frame();
-  //     console.log("Send signal");
-  //     var data = stringToBytes("AT+LEDON");
-
-  //     await BleManager.write(
-  //       deviceConnected,
-  //       service,
-  //       characteristicW,
-  //       data
-  //     ).then(() => {
-  //       console.log("controlled led");
-  //     });
-
-  //     console.log("------------------------");
-  //   }
-
-  //   async function frame() {
-  //     if (timeTaking == 0) {
-  //       timeTaking++;
-
-  //       if (camRef) {
-  //         const asset = await camRef.current.takePictureAsync({
-  //           skipProcessing: true,
-  //         });
-  //         await FileSystem.copyAsync({
-  //           from: asset.uri,
-  //           to: albumUri + "/image_001.jpg",
-  //         });
-  //         const newAsset = await MediaLibrary.createAssetAsync(
-  //           albumUri + "/image_001.jpg"
-  //         );
-  //         const album = await MediaLibrary.createAlbumAsync(
-  //           "/Photobooth/" + albumName,
-  //           newAsset,
-  //           false
-  //         );
-  //         albumId = album.id;
-  //       }
-  //       console.log("Begin: " + timeTaking);
-  //     } else {
-  //       if (timeTaking == 5) {
-  //         timeTaking++;
-
-  //         setCancel(false);
-
-  //         console.log("End take auto pics");
-  //         const command =
-  //           "-framerate 4 -i " +
-  //           albumUri +
-  //           "/image_%03d.jpg -s 640x800 -b:v 2M -pix_fmt yuv420p " +
-  //           albumUri +
-  //           "/out.mp4";
-  //         await RNFFmpeg.execute(command);
-  //         const asset = await MediaLibrary.createAssetAsync(
-  //           albumUri + "/out.mp4"
-  //         );
-  //         await MediaLibrary.addAssetsToAlbumAsync(asset, albumId, false);
-  //         await FileSystem.deleteAsync(albumUri);
-  //         console.log("Finish encode video");
-  //         setTakingPicture(false);
-  //         alert("Finish encode video");
-  //         console.log("End");
-  //       } else {
-  //         timeTaking++;
-
-  //         if (camRef) {
-  //           const asset = await camRef.current.takePictureAsync({
-  //             skipProcessing: true,
-  //           });
-
-  //           let assetName: string;
-  //           if (timeTaking < 10) assetName = "/image_00" + timeTaking + ".jpg";
-  //           else assetName = "/image_0" + timeTaking + ".jpg";
-  //           await FileSystem.copyAsync({
-  //             from: asset.uri,
-  //             to: albumUri + assetName,
-  //           });
-  //           const newAsset = await MediaLibrary.createAssetAsync(
-  //             albumUri + assetName
-  //           );
-  //           //await RNFS.copyFile(asset.uri, albumUri + assetName)
-  //           //newAlbum.push('file://' + albumUri + assetName)
-  //           await MediaLibrary.addAssetsToAlbumAsync(newAsset, albumId, false);
-  //           newAlbum.push(asset);
-  //         }
-  //         console.log("Do: " + timeTaking);
-  //       }
-  //     }
-  //   }
-  // };
   const takePictureAuto = () => {
-    var data = stringToBytes("AT+CAPON 16");
+    let data;
+    if (timePicture >= 10) {
+      data = stringToBytes(`AT+LEDON`);
+    } else {
+      data = stringToBytes(`AT+LEDON`);
+    }
+
     n = 1;
+    setCountPicture(0);
+    setTakingPicture(true);
     BleManager.write(deviceConnected, service, characteristicW, data).then(
       () => {
-        setTakingPicture(true);
         console.log("Begin take auto pics");
 
         setCancel(true);
@@ -476,39 +467,64 @@ function Camera__() {
         ) : null}
       </Modal>
       <Header>
-        <Left>
+        <Button
+          style={{ flex: 1 }}
+          transparent
+          vertical
+          disabled={takingPicture}
+          onPress={() =>
+            setFlash(
+              flash === Camera.Constants.FlashMode.off
+                ? Camera.Constants.FlashMode.on
+                : Camera.Constants.FlashMode.off
+            )
+          }
+        >
+          {flash === Camera.Constants.FlashMode.off && (
+            <Icon name="flash-off" type="Ionicons" />
+          )}
+          {flash === Camera.Constants.FlashMode.on && (
+            <Icon name="flash" type="Ionicons" />
+          )}
+          <Text>Flash</Text>
+        </Button>
+        {!takingPicture ? (
           <Button
+            style={{ flex: 1 }}
             transparent
             vertical
-            disabled={takingPicture}
-            onPress={() =>
-              setFlash(
-                flash === Camera.Constants.FlashMode.off
-                  ? Camera.Constants.FlashMode.on
-                  : Camera.Constants.FlashMode.off
-              )
-            }
+            disabled={!modeAuto}
+            onPress={() => {
+              if (timePicture == 16) {
+                setTimePicture(32);
+              } else if (timePicture == 32) {
+                setTimePicture(8);
+              } else if (timePicture == 8) {
+                setTimePicture(16);
+              }
+            }}
           >
-            {flash === Camera.Constants.FlashMode.off && (
-              <Icon name="flash-off" type="Ionicons" />
-            )}
-            {flash === Camera.Constants.FlashMode.on && (
-              <Icon name="flash" type="Ionicons" />
-            )}
-            <Text>Flash</Text>
+            <Icon name="clockcircleo" type="AntDesign" />
+            <Text>{timePicture}</Text>
           </Button>
-        </Left>
-        <Right>
-          <Button
-            transparent
-            vertical
-            disabled={takingPicture}
-            onPress={() => setModeAuto(!modeAuto)}
-          >
-            <Icon name="camera-burst" type="MaterialCommunityIcons" />
-            <Text>Mode: {modeAuto ? "Auto" : "Normal"}</Text>
+        ) : (
+          <Button style={{ flex: 1 }} transparent vertical disabled>
+            <Icon name="clockcircleo" type="AntDesign" />
+            <Text>
+              {countPicture}/{timePicture}
+            </Text>
           </Button>
-        </Right>
+        )}
+        <Button
+          style={{ flex: 1 }}
+          transparent
+          vertical
+          disabled={takingPicture}
+          onPress={() => setModeAuto(!modeAuto)}
+        >
+          <Icon name="camera-burst" type="MaterialCommunityIcons" />
+          <Text>{modeAuto ? "Auto" : "Normal"}</Text>
+        </Button>
       </Header>
 
       <Camera
@@ -543,8 +559,14 @@ function Camera__() {
             <Icon name="switch-camera" type="MaterialIcons" />
           </Button>
         ) : (
-          <Button active onPress={() => {}} disabled={takingPicture}>
-            <Icon name="camera-alt" type="MaterialIcons" />
+          <Button
+            active
+            onPress={() => {
+              takePicture;
+            }}
+            disabled={takingPicture}
+          >
+            <Entypo name="camera" size={24} color="white" />
           </Button>
         )}
         <Button active disabled={takingPicture} onPress={pickImage}>

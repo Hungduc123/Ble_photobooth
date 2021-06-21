@@ -51,7 +51,6 @@ const NewTest = () => {
       BleManager.scan([], 3, true)
         .then((results) => {
           console.log("Scanning...");
-          console.log("1");
 
           setIsScanning(true);
         })
@@ -61,9 +60,43 @@ const NewTest = () => {
     }
   };
 
+  useEffect(() => {
+    const doIt = async () => {
+      let p: string | null = null;
+      let already: boolean = false;
+      let temp: any = null;
+      try {
+        p = await AsyncStorage.getItem("peripheralId");
+        if (p !== null) {
+          // We have data!!
+          console.log("====================================");
+          console.log("get " + p);
+          console.log("====================================");
+          setPeripheralStore(p);
+          list.forEach(async (item) => {
+            if (item.id.toString() === p) {
+              already = true;
+              temp = item;
+            }
+            console.log("list " + item.id);
+          });
+        }
+        if (already) {
+          console.log("already");
+          await testPeripheral(temp);
+        }
+      } catch (error) {
+        // Error retrieving data
+      }
+      console.log("====================================");
+      console.log("doit");
+      console.log("====================================");
+    };
+    doIt();
+  }, [isScanning]);
+
   const handleStopScan = () => {
     console.log("Scan is stopped");
-    console.log("2");
 
     setIsScanning(false);
   };
@@ -80,20 +113,8 @@ const NewTest = () => {
     } catch (error) {
       // Error saving data
     }
-    console.log("3");
 
     console.log("Disconnected from " + data.peripheral);
-  };
-
-  const handleUpdateValueForCharacteristic = (data: any) => {
-    console.log(
-      "Received data from " +
-        data.peripheral +
-        " characteristic " +
-        data.characteristic,
-      data.value
-    );
-    console.log("4");
   };
 
   const retrieveConnected = () => {
@@ -109,46 +130,24 @@ const NewTest = () => {
         peripheral.connected = true;
         peripherals.set(peripheral.id, peripheral);
         setList(Array.from(peripherals.values()));
-
-        console.log("list");
-        console.log(list);
       }
     });
   };
 
   const handleDiscoverPeripheral = async (peripheral: Peripheral) => {
-    console.log("5");
-
     console.log("Got ble peripheral", peripheral);
-    let p;
-    try {
-      const value = await AsyncStorage.getItem("peripheralId");
-      if (value !== null) {
-        // We have data!!
-        p = value;
-        setPeripheralStore(p);
-      }
-    } catch (error) {
-      // Error retrieving data
-    }
-    if (peripheral.id === p) {
-      console.log("already");
-      setOpen(true);
-      setColorBg("#E8E8E8B2");
-    }
+
     if (!peripheral.name) {
       peripheral.name = "NO NAME";
     }
     peripherals.set(peripheral.id, peripheral);
     setList(Array.from(peripherals.values()));
-    const action = addList(list);
-    dispatch(action);
   };
 
   const connectPeriphery = async (peripheralId: string) => {
     console.log("6");
 
-    BleManager.connect(peripheralId)
+    await BleManager.connect(peripheralId)
       .then(async () => {
         ///////////////////
         BleManager.isPeripheralConnected(peripheralId, []).then(
@@ -167,24 +166,14 @@ const NewTest = () => {
         } catch (error) {
           // Error saving data
         }
-        try {
-          const value = await AsyncStorage.getItem("peripheralId");
-          if (value !== null) {
-            // We have data!!
-            console.log("save");
 
-            console.log(value);
-          }
-        } catch (error) {
-          // Error retrieving data
-        }
         /////////////////////////////////////
-        let p = peripherals.get(peripheralId);
-        if (p) {
-          p.connected = true;
-          peripherals.set(peripheralId, p);
-          setList(Array.from(peripherals.values()));
-        }
+        // let p = peripherals.get(peripheralId);
+        // if (p) {
+        //   p.connected = true;
+        //   peripherals.set(peripheralId, p);
+        //   setList(Array.from(peripherals.values()));
+        // }
         const action = deviceConnected(peripheralId + "");
         dispatch(action);
         console.log("Connected to " + peripheralId);
@@ -202,11 +191,11 @@ const NewTest = () => {
         console.log("Connection error", error);
       });
   };
-  const testPeripheral = (peripheral: Peripheral) => {
+  const testPeripheral = async (peripheral: Peripheral) => {
     if (peripheral) {
       console.log("peripheral");
       console.log(peripheral);
-      BleManager.isPeripheralConnected(peripheral.id, []).then(
+      await BleManager.isPeripheralConnected(peripheral.id, []).then(
         (isConnected) => {
           if (isConnected) {
             console.log("Peripheral is connected!");
@@ -230,6 +219,7 @@ const NewTest = () => {
 
     BleManager.start({ showAlert: false });
 
+    startScan();
     bleManagerEmitter.addListener(
       "BleManagerDiscoverPeripheral",
       handleDiscoverPeripheral
@@ -238,10 +228,6 @@ const NewTest = () => {
     bleManagerEmitter.addListener(
       "BleManagerDisconnectPeripheral",
       handleDisconnectedPeripheral
-    );
-    bleManagerEmitter.addListener(
-      "BleManagerDidUpdateValueForCharacteristic",
-      handleUpdateValueForCharacteristic
     );
 
     if (Platform.OS === "android" && Platform.Version >= 23) {
@@ -277,23 +263,10 @@ const NewTest = () => {
         "BleManagerDisconnectPeripheral",
         handleDisconnectedPeripheral
       );
-      bleManagerEmitter.removeListener(
-        "BleManagerDidUpdateValueForCharacteristic",
-        handleUpdateValueForCharacteristic
-      );
     };
   }, []);
 
   const renderItem = (item: Peripheral) => {
-    // var color;
-    // BleManager.isPeripheralConnected(item.id, []).then((isConnected) => {
-    //   if (isConnected) {
-    //     color = "green";
-    //   } else {
-    //     color = "gray";
-    //   }
-    // });
-
     return (
       <TouchableOpacity
         style={{ flex: 1 }}
@@ -301,7 +274,7 @@ const NewTest = () => {
           testPeripheral(item);
         }}
       >
-        {open && (
+        {/* {open && (
           <Modal animationType="slide" transparent={true} visible={open}>
             <SafeAreaView style={styles.container}>
               <Card
@@ -353,7 +326,7 @@ const NewTest = () => {
               </Card>
             </SafeAreaView>
           </Modal>
-        )}
+        )} */}
         <Card
           style={{
             flex: 1,
