@@ -36,7 +36,13 @@ import { useHistory } from "react-router-native";
 // import { imageCurrentChoose } from "../slice/imageCurrentChoose";
 import BleManager from "react-native-ble-manager";
 import { useDispatch, useSelector } from "react-redux";
-import { Entypo } from "@expo/vector-icons";
+import {
+  Entypo,
+  Ionicons,
+  MaterialCommunityIcons,
+  MaterialIcons,
+} from "@expo/vector-icons";
+
 const BleManagerModule = NativeModules.BleManager;
 const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
 
@@ -62,13 +68,7 @@ function Camera__() {
   const [videoSelected, setVideoSelected] = useState<boolean>(false);
   const [imageSelected, setImageSelected] = useState<boolean>(false);
   const [t, setTimePicture] = useState<number>(8);
-  console.log("====================================");
-  console.log(t);
-  console.log("====================================");
   const timePicture = t;
-  console.log("====================================");
-  console.log(timePicture);
-  console.log("====================================");
 
   const [countPicture, setCountPicture] = useState<number>(0);
 
@@ -83,6 +83,8 @@ function Camera__() {
   const [service, setService] = useState<string>(
     "00001523-1212-efde-1523-785feabcd123"
   );
+  const [speed, setSpeed] = useState<number>(1);
+  const [openRotate, setOpenRotate] = useState<boolean>(false);
   let n = 1;
   let albumName = "";
   let albumUri = "";
@@ -368,6 +370,19 @@ function Camera__() {
       }
     );
   };
+  const continuously = () => {
+    console.log("====================================");
+    console.log("speed" + speed);
+    console.log("====================================");
+    // let data = stringToBytes(`AT+AUTO ${speed}`);
+
+    // BleManager.write(deviceConnected, service, characteristicW, data).then(
+    //   () => {
+    //     console.log(`AT+AUTO ${speed}`);
+    //   }
+    // );
+  };
+
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
@@ -486,8 +501,33 @@ function Camera__() {
           {flash === Camera.Constants.FlashMode.on && (
             <Icon name="flash" type="Ionicons" />
           )}
-          <Text>Flash</Text>
+          <Text style={styles.text}>Flash</Text>
         </Button>
+
+        <Button
+          transparent
+          vertical
+          disabled={takingPicture}
+          onPress={() => {
+            if (speed == 1) {
+              setSpeed(2);
+            } else if (speed == 2) {
+              setSpeed(3);
+              // continuously(3);
+            } else if (speed == 3) {
+              setSpeed(1);
+              // continuously(3);
+            }
+          }}
+        >
+          <Icon
+            name="axis-z-rotate-clockwise"
+            type="MaterialCommunityIcons"
+            style={{ fontSize: 30 }}
+          />
+          <Text style={styles.text}>Speed {speed}</Text>
+        </Button>
+
         {!takingPicture ? (
           <Button
             style={{ flex: 1 }}
@@ -523,7 +563,7 @@ function Camera__() {
           onPress={() => setModeAuto(!modeAuto)}
         >
           <Icon name="camera-burst" type="MaterialCommunityIcons" />
-          <Text>{modeAuto ? "Auto" : "Normal"}</Text>
+          <Text style={styles.text}>{modeAuto ? "Auto" : "Normal"}</Text>
         </Button>
       </Header>
 
@@ -536,6 +576,7 @@ function Camera__() {
 
       <FooterTab style={{ flex: 0.1 }}>
         <Button
+          transparent
           active
           disabled={takingPicture}
           onPress={() => {
@@ -547,6 +588,20 @@ function Camera__() {
           }}
         >
           <Icon name="camera-reverse" type="Ionicons" />
+        </Button>
+        <Button
+          transparent
+          active
+          disabled={takingPicture}
+          onPress={() => {
+            continuously();
+          }}
+        >
+          <MaterialCommunityIcons
+            name="rotate-3d-variant"
+            size={24}
+            color="white"
+          />
         </Button>
         {modeAuto ? (
           <Button
@@ -560,16 +615,17 @@ function Camera__() {
           </Button>
         ) : (
           <Button
+            transparent
             active
             onPress={() => {
-              takePicture;
+              takePicture();
             }}
             disabled={takingPicture}
           >
             <Entypo name="camera" size={24} color="white" />
           </Button>
         )}
-        <Button active disabled={takingPicture} onPress={pickImage}>
+        <Button transparent active disabled={takingPicture} onPress={pickImage}>
           <Icon name="images" type="FontAwesome5" />
         </Button>
       </FooterTab>
@@ -626,5 +682,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
+  },
+  text: {
+    fontSize: 10,
   },
 });

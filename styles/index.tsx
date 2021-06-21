@@ -7,5 +7,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  text: {
+    fontSize: 10,
+  },
 });
 export default styles;
