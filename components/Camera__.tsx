@@ -26,6 +26,8 @@ import {
   Left,
   Right,
   FooterTab,
+  Footer,
+  Container,
 } from "native-base";
 
 import * as FileSystem from "expo-file-system";
@@ -53,10 +55,12 @@ function Camera__() {
 
   const camRef = useRef<object | any>(null);
   const [type, setType] = useState(Camera.Constants.Type.back);
-  const [cameraPermission, setCameraPermission] =
-    useState<boolean | null>(null);
-  const [libraryPermission, setLibraryPermission] =
-    useState<boolean | null>(null);
+  const [cameraPermission, setCameraPermission] = useState<boolean | null>(
+    null
+  );
+  const [libraryPermission, setLibraryPermission] = useState<boolean | null>(
+    null
+  );
   const [showModal, setShowModal] = useState<boolean>(false);
   const [flash, setFlash] = useState(Camera.Constants.FlashMode.off);
   const [capturedPhoto, setCapturedPhoto] = useState<string | any>(null);
@@ -95,21 +99,28 @@ function Camera__() {
     console.log("data" + data.value);
     console.log("====================================");
 
+    if (
+      data.value.toString() ===
+      [65, 84, 43, 67, 65, 80, 79, 78, 32, 79, 75, 0, 0, 0, 0, 0].toString()
+    ) {
+      console.log(" Device has received signal ");
+      ToastAndroid.show(
+        "Device has received signal! \n OK: " + data.value.toString(),
+        ToastAndroid.SHORT
+      );
+    }
+    if (
+      data.value.toString() ===
+      [65, 84, 43, 82, 69, 84, 82, 89, 0, 0, 0, 0, 0, 0, 0, 0].toString()
+    ) {
+      console.log("Mobile send wrong signal");
+    }
+
     // if (
     //   data.value.toString() ===
-    //   [65, 84, 43, 67, 65, 80, 79, 78, 32, 79, 75, 0, 0, 0, 0, 0].toString()
-    // ) {
-    //   console.log(" Device has received signal ");
-    //   ToastAndroid.show(
-    //     "Device has received signal! \n OK: " + data.value.toString(),
-    //     ToastAndroid.SHORT
-    //   );
-    // }
-    // if (data.value.toString() === [65, 84, 43, 82, 69, 84, 82, 89].toString()) {
-    //   console.log("Mobile send wrong signal");
-    // }
-
-    if (data.value.toString()) {
+    //   [65, 84, 43, 67, 65, 80, 79, 78, 32, 70, 73, 78, 73, 83, 72, 0].toString()
+    // )
+    if (data.value) {
       ToastAndroid.show(
         "App has received signal FINISH ! \n OK: " + data.value.toString(),
         ToastAndroid.SHORT
@@ -122,11 +133,12 @@ function Camera__() {
           console.log("Send signal n:" + n);
 
           let data;
-          if (timePicture >= 10) {
-            data = stringToBytes(`AT+LEDON`);
-          } else {
-            data = stringToBytes(`AT+LEDON`);
-          }
+          // if (timePicture >= 10) {
+          //   data = stringToBytes(`AT+CAPON ${timePicture}`);
+          // } else {
+          //   data = stringToBytes(`AT+CAPON 0${timePicture}`);
+          // }
+          data = stringToBytes(`AT+LEDON`);
 
           BleManager.write(
             deviceConnected,
@@ -145,11 +157,12 @@ function Camera__() {
           console.log("Send signal n:" + n);
 
           let data;
-          if (timePicture >= 10) {
-            data = stringToBytes(`AT+LEDON`);
-          } else {
-            data = stringToBytes(`AT+LEDON`);
-          }
+          // if (timePicture >= 10) {
+          //   data = stringToBytes(`AT+CAPON ${timePicture}`);
+          // } else {
+          //   data = stringToBytes(`AT+CAPON 0${timePicture}`);
+          // }
+          data = stringToBytes(`AT+LEDON`);
 
           BleManager.write(
             deviceConnected,
@@ -346,18 +359,21 @@ function Camera__() {
 
   const takePicture = async () => {
     if (!camRef) return;
-    const { uri } = await camRef.current.takePictureAsync();
+    const { uri } = await camRef.current.takePictureAsync({
+      skipProcessing: true,
+    });
     setOpen(true);
     setCapturedPhoto(uri);
   };
 
   const takePictureAuto = () => {
     let data;
-    if (timePicture >= 10) {
-      data = stringToBytes(`AT+LEDON`);
-    } else {
-      data = stringToBytes(`AT+LEDON`);
-    }
+    // if (timePicture >= 10) {
+    //   data = stringToBytes(`AT+CAPON ${timePicture}`);
+    // } else {
+    //   data = stringToBytes(`AT+CAPON 0${timePicture}`);
+    // }
+    data = stringToBytes(`AT+LEDON`);
 
     n = 1;
     setCountPicture(0);
@@ -374,13 +390,13 @@ function Camera__() {
     console.log("====================================");
     console.log("speed" + speed);
     console.log("====================================");
-    // let data = stringToBytes(`AT+AUTO ${speed}`);
+    let data = stringToBytes(`AT+AUTO ${speed}`);
 
-    // BleManager.write(deviceConnected, service, characteristicW, data).then(
-    //   () => {
-    //     console.log(`AT+AUTO ${speed}`);
-    //   }
-    // );
+    BleManager.write(deviceConnected, service, characteristicW, data).then(
+      () => {
+        console.log(`AT+AUTO ${speed}`);
+      }
+    );
   };
 
   const pickImage = async () => {
@@ -411,9 +427,9 @@ function Camera__() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <Container>
       <Modal animationType="slide" visible={showModal}>
-        <Header hasTabs>
+        <Header style={{ backgroundColor: "skyblue" }}>
           <Left>
             <Button
               transparent
@@ -448,8 +464,13 @@ function Camera__() {
               shouldPlay={isPlaying}
               isLooping
             />
+
             <Button
-              style={{ alignSelf: "center", marginTop: 10 }}
+              style={{
+                backgroundColor: "skyblue",
+                alignSelf: "center",
+                marginTop: 10,
+              }}
               rounded
               onPress={() => setIsPlaying(!isPlaying)}
             >
@@ -475,13 +496,17 @@ function Camera__() {
                 width: "100%",
                 height: "75%",
                 display: "flex",
+                borderRadius: 20,
               }}
               resizeMode="contain"
             />
           </View>
         ) : null}
       </Modal>
-      <Header>
+      <Header
+        androidStatusBarColor="skyblue"
+        style={{ backgroundColor: "skyblue" }}
+      >
         <Button
           style={{ flex: 1 }}
           transparent
@@ -505,6 +530,7 @@ function Camera__() {
         </Button>
 
         <Button
+          style={{ flex: 1 }}
           transparent
           vertical
           disabled={takingPicture}
@@ -568,70 +594,73 @@ function Camera__() {
       </Header>
 
       <Camera
-        style={{ flex: 0.9, alignItems: "center", justifyContent: "flex-end" }}
+        style={{ flex: 1, alignItems: "center", justifyContent: "flex-end" }}
         type={type}
         ref={camRef}
         flashMode={flash}
       ></Camera>
-
-      <FooterTab style={{ flex: 0.1 }}>
-        <Button
-          transparent
-          active
-          disabled={takingPicture}
-          onPress={() => {
-            setType(
-              type === Camera.Constants.Type.back
-                ? Camera.Constants.Type.front
-                : Camera.Constants.Type.back
-            );
-          }}
-        >
-          <Icon name="camera-reverse" type="Ionicons" />
-        </Button>
-        <Button
-          transparent
-          active
-          disabled={takingPicture}
-          onPress={() => {
-            continuously();
-          }}
-        >
-          <MaterialCommunityIcons
-            name="rotate-3d-variant"
-            size={24}
-            color="white"
-          />
-        </Button>
-        {modeAuto ? (
+      <Footer>
+        <FooterTab style={{ backgroundColor: "skyblue" }}>
           <Button
+            style={{ backgroundColor: "skyblue" }}
             active
-            onPress={() => {
-              takePictureAuto();
-            }}
             disabled={takingPicture}
+            onPress={() => {
+              setType(
+                type === Camera.Constants.Type.back
+                  ? Camera.Constants.Type.front
+                  : Camera.Constants.Type.back
+              );
+            }}
           >
-            <Icon name="switch-camera" type="MaterialIcons" />
+            <Icon name="camera-reverse" type="Ionicons" />
           </Button>
-        ) : (
           <Button
-            transparent
+            style={{ backgroundColor: "skyblue" }}
             active
-            onPress={() => {
-              takePicture();
-            }}
             disabled={takingPicture}
+            onPress={() => {
+              continuously();
+            }}
           >
-            <Entypo name="camera" size={24} color="white" />
+            <Icon name="rotate-3d-variant" type="MaterialCommunityIcons" />
           </Button>
-        )}
-        <Button transparent active disabled={takingPicture} onPress={pickImage}>
-          <Icon name="images" type="FontAwesome5" />
-        </Button>
-      </FooterTab>
+          {modeAuto ? (
+            <Button
+              style={{ backgroundColor: "skyblue" }}
+              active
+              onPress={() => {
+                takePictureAuto();
+              }}
+              disabled={takingPicture}
+            >
+              <Icon name="switch-camera" type="MaterialIcons" />
+            </Button>
+          ) : (
+            <Button
+              style={{ backgroundColor: "skyblue" }}
+              active
+              onPress={() => {
+                takePicture();
+              }}
+              disabled={takingPicture}
+            >
+              <Entypo name="camera" size={24} color="white" />
+            </Button>
+          )}
+          <Button
+            style={{ backgroundColor: "skyblue" }}
+            active
+            disabled={takingPicture}
+            onPress={pickImage}
+          >
+            <Icon name="images" type="FontAwesome5" />
+          </Button>
+        </FooterTab>
+      </Footer>
       {capturedPhoto && (
         <Modal animationType="slide" transparent={false} visible={open}>
-          <Header>
+          <Header style={{ backgroundColor: "skyblue" }}>
             <Left>
               <Button transparent onPress={() => setOpen(false)}>
                 <Icon name="window-close" type="FontAwesome" />
@@ -673,7 +702,7 @@ function Camera__() {
           )}
         </Modal>
       )}
-    </SafeAreaView>
+    </Container>
   );
 }
 

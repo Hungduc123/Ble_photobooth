@@ -83,7 +83,46 @@ const NewTest = () => {
         }
         if (already) {
           console.log("already");
-          await testPeripheral(temp);
+          // await testPeripheral(temp);
+          ////het noi r chuyen qu man cam
+
+          await BleManager.connect(temp.id)
+            .then(async () => {
+              ///////////////////
+              BleManager.isPeripheralConnected(temp.id, []).then(
+                (isConnected) => {
+                  if (isConnected) {
+                    console.log("Peripheral is connected!");
+                  } else {
+                    console.log("Peripheral is NOT connected!");
+                  }
+                }
+              );
+              ////////////////////////////////////////////////////
+              ///////////////////save peripheral ////////////////
+              try {
+                await AsyncStorage.setItem("peripheralId", temp.id);
+              } catch (error) {
+                // Error saving data
+              }
+
+              /////////////////////////////////////
+              // let p = peripherals.get(peripheralId);
+              // if (p) {
+              //   p.connected = true;
+              //   peripherals.set(peripheralId, p);
+              //   setList(Array.from(peripherals.values()));
+              // }
+              const action = deviceConnected(temp.id + "");
+              dispatch(action);
+              console.log("Connected to " + temp.id);
+
+              history.push("/Camera__");
+            })
+            .catch((error) => {
+              console.log("Connection error", error);
+            });
+          //////////////////////////////////////
         }
       } catch (error) {
         // Error retrieving data
@@ -145,8 +184,6 @@ const NewTest = () => {
   };
 
   const connectPeriphery = async (peripheralId: string) => {
-    console.log("6");
-
     await BleManager.connect(peripheralId)
       .then(async () => {
         ///////////////////
@@ -215,8 +252,6 @@ const NewTest = () => {
   };
 
   useEffect(() => {
-    console.log("7");
-
     BleManager.start({ showAlert: false });
 
     startScan();
