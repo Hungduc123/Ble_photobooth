@@ -44,7 +44,6 @@ import {
   MaterialCommunityIcons,
   MaterialIcons,
 } from "@expo/vector-icons";
-import Loading from "./Loading";
 
 const BleManagerModule = NativeModules.BleManager;
 const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
@@ -53,7 +52,7 @@ function Camera__() {
   // const dispatch = useDispatch();
   const history = useHistory();
   const dispatch = useDispatch();
-  const [decode, setDecode] = useState<boolean>(false);
+
   const camRef = useRef<object | any>(null);
   const [type, setType] = useState(Camera.Constants.Type.back);
   const [cameraPermission, setCameraPermission] = useState<boolean | null>(
@@ -117,11 +116,11 @@ function Camera__() {
       console.log("Mobile send wrong signal");
     }
 
-    if (
-      data.value.toString() ===
-      [65, 84, 43, 67, 65, 80, 79, 78, 32, 70, 73, 78, 73, 83, 72, 0].toString()
-    ) {
-      // if (data.value)
+    // if (
+    //   data.value.toString() ===
+    //   [65, 84, 43, 67, 65, 80, 79, 78, 32, 70, 73, 78, 73, 83, 72, 0].toString()
+    // )
+    if (data.value) {
       ToastAndroid.show(
         "App has received signal FINISH ! \n OK: " + data.value.toString(),
         ToastAndroid.SHORT
@@ -134,12 +133,12 @@ function Camera__() {
           console.log("Send signal n:" + n);
 
           let data;
-          if (timePicture >= 10) {
-            data = stringToBytes(`AT+CAPON ${timePicture}`);
-          } else {
-            data = stringToBytes(`AT+CAPON 0${timePicture}`);
-          }
-          // data = stringToBytes(`AT+LEDON`);
+          // if (timePicture >= 10) {
+          //   data = stringToBytes(`AT+CAPON ${timePicture}`);
+          // } else {
+          //   data = stringToBytes(`AT+CAPON 0${timePicture}`);
+          // }
+          data = stringToBytes(`AT+LEDON`);
 
           BleManager.write(
             deviceConnected,
@@ -158,12 +157,12 @@ function Camera__() {
           console.log("Send signal n:" + n);
 
           let data;
-          if (timePicture >= 10) {
-            data = stringToBytes(`AT+CAPON ${timePicture}`);
-          } else {
-            data = stringToBytes(`AT+CAPON 0${timePicture}`);
-          }
-          // data = stringToBytes(`AT+LEDON`);
+          // if (timePicture >= 10) {
+          //   data = stringToBytes(`AT+CAPON ${timePicture}`);
+          // } else {
+          //   data = stringToBytes(`AT+CAPON 0${timePicture}`);
+          // }
+          data = stringToBytes(`AT+LEDON`);
 
           BleManager.write(
             deviceConnected,
@@ -243,11 +242,10 @@ function Camera__() {
         setCancel(false);
 
         console.log("End take auto pics");
-        setDecode(true);
         const command =
-          "-framerate 8 -i " +
+          "-framerate 8 -noautorotate -i " +
           albumUri +
-          "/image_%03d.jpg -s 640x800 -vf transpose=1 -b:v 2M -pix_fmt yuv420p " +
+          "/image_%03d.jpg -s 640x800 -b:v 2M -pix_fmt yuv420p " +
           albumUri +
           "/out.mp4";
         await RNFFmpeg.execute(command);
@@ -257,7 +255,6 @@ function Camera__() {
         await MediaLibrary.addAssetsToAlbumAsync(asset, albumId, false);
         await FileSystem.deleteAsync(albumUri);
         console.log("Finish encode video");
-        setDecode(false);
         setTakingPicture(false);
 
         Alert.alert("Finish", "Finish encode video", [
@@ -371,12 +368,12 @@ function Camera__() {
 
   const takePictureAuto = () => {
     let data;
-    if (timePicture >= 10) {
-      data = stringToBytes(`AT+CAPON ${timePicture}`);
-    } else {
-      data = stringToBytes(`AT+CAPON 0${timePicture}`);
-    }
-    // data = stringToBytes(`AT+LEDON`);
+    // if (timePicture >= 10) {
+    //   data = stringToBytes(`AT+CAPON ${timePicture}`);
+    // } else {
+    //   data = stringToBytes(`AT+CAPON 0${timePicture}`);
+    // }
+    data = stringToBytes(`AT+LEDON`);
 
     n = 1;
     setCountPicture(0);
@@ -448,7 +445,6 @@ function Camera__() {
           </Left>
           <Right></Right>
         </Header>
-
         {videoSelected ? (
           <View>
             <Text
@@ -597,11 +593,6 @@ function Camera__() {
         </Button>
       </Header>
 
-      {decode && (
-        <Modal animationType="slide" transparent={true} visible={decode}>
-          <Loading></Loading>
-        </Modal>
-      )}
       <Camera
         style={{ flex: 1, alignItems: "center", justifyContent: "flex-end" }}
         type={type}
